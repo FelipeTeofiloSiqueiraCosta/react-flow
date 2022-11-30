@@ -24,6 +24,7 @@ const initialNodes: Node<CustomNodeData>[] = [
     id: "start",
     type: "customNode",
     connectable: true,
+    deletable: false,
     data: {
       children: "Start",
       handles: [
@@ -62,8 +63,34 @@ export function Flow() {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      // console.log(changes);
-      return setNodes((nds) => applyNodeChanges(changes, nds));
+      return setNodes((nds) => {
+        if (changes[0].type === "remove") {
+          setEdges((eds) => {
+            eds.pop();
+
+            return eds;
+          });
+
+          nds[nds.length - 2].selectable = true;
+          nds[nds.length - 2].deletable = true;
+          nds[nds.length - 2].data.handles = nds[
+            nds.length - 2
+          ].data.handles?.map((handleNode) => {
+            if (handleNode.type === "source") {
+              handleNode.isConnectable = true;
+            }
+            return handleNode;
+          });
+
+          if (id > 1) {
+            id = nds.length - 1;
+          } else {
+            id = 1;
+          }
+        }
+
+        return applyNodeChanges(changes, nds);
+      });
     },
     [setNodes]
   );
@@ -100,6 +127,7 @@ export function Flow() {
             id: `${id}`,
             type: "customNode",
             connectable: true,
+
             data: {
               children: `Node ${id}`,
               handles: [
@@ -132,7 +160,8 @@ export function Flow() {
             if (nds[numId].data.handles) {
               newNodes = nds.map((nd) => {
                 nd.connectable = false;
-
+                nd.selectable = false;
+                nd.deletable = false;
                 nd.data.handles = nd.data.handles?.map((handleNode) => {
                   handleNode.isConnectable = false;
 
@@ -141,23 +170,19 @@ export function Flow() {
 
                 return nd;
               });
-              // console.log(newNodes);
             }
-
-            // console.log(nds[numId].data.handles);
-
-            // nds[numId].data.handles[0].isConnectable = false;
 
             return newNodes.concat(newNode);
           });
 
-          setEdges((eds) =>
-            eds.concat({
+          setEdges((eds) => {
+            return eds.concat({
               id: `${connectingNodeId.current}-${id}`,
               source: connectingNodeId.current,
               target: id,
-            } as Edge)
-          );
+              deletable: false,
+            } as Edge);
+          });
         }
       }
     },

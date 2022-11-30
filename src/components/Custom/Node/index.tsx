@@ -33,9 +33,8 @@ export function CustomNode({
         handles.map((handle, index) => {
           return (
             <Handle
-              id={id + "-" + index}
               {...handle}
-              key={id + "-" + index}
+              key={handle.id}
               style={handle.isConnectable ? {} : { backgroundColor: "red" }}
             ></Handle>
           );
