@@ -1,3 +1,4 @@
+import { CSSProperties } from "react";
 import { Handle, HandleProps, NodeProps, Position } from "reactflow";
 import "./index.css";
 
@@ -6,7 +7,11 @@ export interface CustomNodeData {
   handles?: HandleProps[];
 }
 
-const defaultHandles: HandleProps[] = [
+export interface CustomHandleProps extends HandleProps {
+  style?: CSSProperties;
+}
+
+const defaultHandles: CustomHandleProps[] = [
   {
     type: "target",
     position: Position.Top,
@@ -31,6 +36,7 @@ export function CustomNode({
               id={id + "-" + index}
               {...handle}
               key={id + "-" + index}
+              style={handle.isConnectable ? {} : { backgroundColor: "red" }}
             ></Handle>
           );
         })}

@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ReactFlow, {
   addEdge,
   applyEdgeChanges,
@@ -7,18 +13,35 @@ import ReactFlow, {
   Edge,
   EdgeChange,
   FitViewOptions,
+  HandleProps,
   Node,
   NodeChange,
   OnConnectStartParams,
+  Position,
   useReactFlow,
 } from "reactflow";
-import { CustomNode, CustomNodeData } from "../../components/Custom/Node";
+import {
+  CustomHandleProps,
+  CustomNode,
+  CustomNodeData,
+} from "../../components/Custom/Node";
 
 const initialNodes: Node<CustomNodeData>[] = [
   {
-    id: "node1",
+    id: "start",
     type: "customNode",
-    data: {},
+    connectable: true,
+    data: {
+      children: "Start",
+      handles: [
+        {
+          id: "start-handle1",
+          type: "source",
+          position: Position.Bottom,
+          isConnectable: true,
+        },
+      ],
+    },
     position: { x: 5, y: 5 },
   },
 ];
@@ -45,8 +68,10 @@ export function Flow() {
   const [edges, setEdges] = useState<Edge<any>[]>(initialEdges);
 
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) =>
-      setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes: NodeChange[]) => {
+      // console.log(changes);
+      return setNodes((nds) => applyNodeChanges(changes, nds));
+    },
     [setNodes]
   );
   const onEdgesChange = useCallback(
@@ -60,7 +85,7 @@ export function Flow() {
   );
 
   const onConnectStart = useCallback(
-    (_: React.MouseEvent, { nodeId }: OnConnectStartParams) => {
+    (_: React.MouseEvent, { nodeId, handleType }: OnConnectStartParams) => {
       connectingNodeId.current = nodeId;
     },
     []
@@ -77,20 +102,65 @@ export function Flow() {
           let { top, left } = reactFlowWrapper.current.getBoundingClientRect();
 
           const id = getId();
+
           const newNode: Node = {
-            id,
+            id: `${id}`,
+            type: "customNode",
+            connectable: true,
+            data: {
+              children: `Node ${id}`,
+              handles: [
+                {
+                  id: `${id}-handle1`,
+                  type: "target",
+                  position: Position.Top,
+                  isConnectable: false,
+                  style: { stroke: "#000" },
+                },
+                {
+                  id: `${id}-handle2`,
+                  type: "source",
+                  position: Position.Bottom,
+                  isConnectable: true,
+                  style: { stroke: "#000" },
+                },
+              ] as CustomHandleProps[],
+            },
             // we are removing the half of the node width (75) to center the new node
             position: project({
               x: event.clientX - left - 75,
               y: event.clientY - top,
             }),
-            data: { label: `Node ${id}` },
           };
 
-          setNodes((nds) => nds.concat(newNode));
+          setNodes((nds) => {
+            const numId = Number(id) - 1;
+            let newNodes: Node<CustomNodeData>[] = [];
+            if (nds[numId].data.handles) {
+              newNodes = nds.map((nd) => {
+                nd.connectable = false;
+
+                nd.data.handles = nd.data.handles?.map((handleNode) => {
+                  handleNode.isConnectable = false;
+
+                  return handleNode;
+                });
+
+                return nd;
+              });
+              // console.log(newNodes);
+            }
+
+            // console.log(nds[numId].data.handles);
+
+            // nds[numId].data.handles[0].isConnectable = false;
+
+            return newNodes.concat(newNode);
+          });
+
           setEdges((eds) =>
             eds.concat({
-              id,
+              id: `${connectingNodeId.current}-${id}`,
               source: connectingNodeId.current,
               target: id,
             } as Edge)
